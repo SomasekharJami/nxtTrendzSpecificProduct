@@ -1,11 +1,11 @@
 import {Component} from 'react'
-import {Link} from 'react-router-dom'
 import Cookies from 'js-cookie'
+import {Link} from 'react-router-dom'
 import Loader from 'react-loader-spinner'
 import {BsPlusSquare, BsDashSquare} from 'react-icons/bs'
 
 import Header from '../Header'
-import SimilarProductItem from '../SimilarProductItem'
+import SimilarItems from '../SimilarItems'
 
 import './index.css'
 
@@ -16,16 +16,19 @@ const apiStatusConstants = {
   inProgress: 'IN_PROGRESS',
 }
 
-class ProductItemDetails extends Component {
+class ProductSpecificDetails extends Component {
   state = {
-    productData: {},
-    similarProductsData: [],
+    products: '',
+    similarItems: '',
     apiStatus: apiStatusConstants.initial,
     quantity: 1,
   }
 
   componentDidMount() {
-    this.getProductData()
+    const {match} = this.props
+    const {params} = match
+    const {id} = params
+    this.gettingData(id)
   }
 
   getFormattedData = data => ({
@@ -40,39 +43,30 @@ class ProductItemDetails extends Component {
     totalReviews: data.total_reviews,
   })
 
-  getProductData = async () => {
-    const {match} = this.props
-    const {params} = match
-    const {id} = params
-
-    this.setState({
-      apiStatus: apiStatusConstants.inProgress,
-    })
+  gettingData = async id => {
+    this.setState({apiStatus: apiStatusConstants.inProgress})
     const jwtToken = Cookies.get('jwt_token')
-    const apiUrl = `https://apis.ccbp.in/products/${id}`
+    const url = `https://apis.ccbp.in/products/${id}`
     const options = {
       headers: {
         Authorization: `Bearer ${jwtToken}`,
       },
       method: 'GET',
     }
-    const response = await fetch(apiUrl, options)
-    if (response.ok) {
+    const response = await fetch(url, options)
+    if (response.ok === true) {
       const fetchedData = await response.json()
       const updatedData = this.getFormattedData(fetchedData)
-      const updatedSimilarProductsData = fetchedData.similar_products.map(
-        eachSimilarProduct => this.getFormattedData(eachSimilarProduct),
+      const updatedSimliar = fetchedData.similar_products.map(eachItem =>
+        this.getFormattedData(eachItem),
       )
       this.setState({
-        productData: updatedData,
-        similarProductsData: updatedSimilarProductsData,
+        products: updatedData,
+        similarItems: updatedSimliar,
         apiStatus: apiStatusConstants.success,
       })
-    }
-    if (response.status === 404) {
-      this.setState({
-        apiStatus: apiStatusConstants.failure,
-      })
+    } else {
+      this.setState({apiStatus: apiStatusConstants.failure})
     }
   }
 
@@ -101,7 +95,9 @@ class ProductItemDetails extends Component {
   onDecrementQuantity = () => {
     const {quantity} = this.state
     if (quantity > 1) {
-      this.setState(prevState => ({quantity: prevState.quantity - 1}))
+      this.setState(prevState => ({
+        quantity: prevState.quantity - 1,
+      }))
     }
   }
 
@@ -109,8 +105,12 @@ class ProductItemDetails extends Component {
     this.setState(prevState => ({quantity: prevState.quantity + 1}))
   }
 
+  clickingList = id => {
+    this.gettingData(id)
+  }
+
   renderProductDetailsView = () => {
-    const {productData, quantity, similarProductsData} = this.state
+    const {products, quantity, similarItems} = this.state
     const {
       availability,
       brand,
@@ -120,7 +120,7 @@ class ProductItemDetails extends Component {
       rating,
       title,
       totalReviews,
-    } = productData
+    } = products
 
     return (
       <div className="product-details-success-view">
@@ -169,17 +169,20 @@ class ProductItemDetails extends Component {
                 <BsPlusSquare className="quantity-controller-icon" />
               </button>
             </div>
-            <button type="button" className="button add-to-cart-btn">
-              ADD TO CART
-            </button>
+            <Link to="/cart" className="linkBton">
+              <button type="button" className="button add-to-cart-btn">
+                ADD TO CART
+              </button>
+            </Link>
           </div>
         </div>
         <h1 className="similar-products-heading">Similar Products</h1>
         <ul className="similar-products-list">
-          {similarProductsData.map(eachSimilarProduct => (
-            <SimilarProductItem
+          {similarItems.map(eachSimilarProduct => (
+            <SimilarItems
               productDetails={eachSimilarProduct}
               key={eachSimilarProduct.id}
+              clickingList={this.clickingList}
             />
           ))}
         </ul>
@@ -187,16 +190,15 @@ class ProductItemDetails extends Component {
     )
   }
 
-  renderProductDetails = () => {
+  gettingAllDetails = () => {
     const {apiStatus} = this.state
-
     switch (apiStatus) {
+      case apiStatusConstants.inProgress:
+        return this.renderLoadingView()
       case apiStatusConstants.success:
         return this.renderProductDetailsView()
       case apiStatusConstants.failure:
         return this.renderFailureView()
-      case apiStatusConstants.inProgress:
-        return this.renderLoadingView()
       default:
         return null
     }
@@ -207,11 +209,11 @@ class ProductItemDetails extends Component {
       <>
         <Header />
         <div className="product-item-details-container">
-          {this.renderProductDetails()}
+          {this.gettingAllDetails()}
         </div>
       </>
     )
   }
 }
 
-export default ProductItemDetails
+export default ProductSpecificDetails

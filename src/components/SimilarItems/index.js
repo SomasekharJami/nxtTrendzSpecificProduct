@@ -1,11 +1,14 @@
 import './index.css'
 
-const SimilarProductItem = props => {
-  const {productDetails} = props
-  const {title, brand, imageUrl, rating, price} = productDetails
+const SimilarItems = props => {
+  const {productDetails, clickingList} = props
+  const {title, brand, imageUrl, rating, price, id} = productDetails
+  const onClicking = () => {
+    clickingList(id)
+  }
 
   return (
-    <li className="similar-product-item">
+    <li className="similar-product-item" onClick={onClicking}>
       <img
         src={imageUrl}
         className="similar-product-image"
@@ -28,4 +31,4 @@ const SimilarProductItem = props => {
   )
 }
 
-export default SimilarProductItem
+export default SimilarItems
